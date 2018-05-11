@@ -4,49 +4,55 @@ import multiprocessing as mp
 
 
 url_regex = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>\[\]]+|\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\))+(?:\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\)|[^\s`!(){};:'".,<>?\[\]]))""")
-INPUT_FILE = "datos_original_mitad.txt"
-OUTPUT_FILE = "output5.txt"
+archivoOrigen = "datos_original_mitad.txt"
+archivoDestino = "output5.txt"
 matches = []
-counter = 0
-modifiedWords = []
+contador = 0
+palabrasModificadas = []
 
-def process_match(m):
+def procesar_match(m):
     matches.append(m.group(0))
     return '{{URL}}'
 
-def process(line):
-    global counter,modifiedWords
-    #print ' '.join([str(x) for x in modifiedWords])
-    print counter
+def procesar(line):
+    global contador,palabrasModificadas
+    print contador
     try:
-        counter += 1
-        if counter % 500 == 0:
-            print str(counter)
-        cleanedLine = line.strip()   
-        cleanedLine = url_regex.sub(process_match, cleanedLine)
-        cleanedLine = re.sub("\d+", "xxNumxx", cleanedLine)
+        contador += 1
+        if contador % 500 == 0:
+            print str(contador)
+        #quita caracteres en blanco al principio y final
+        lineaLimpia = line.strip()   
+        #quitar URLs
+        lineaLimpia = url_regex.sub(procesar_match, lineaLimpia)
+        #quitar números
+        lineaLimpia = re.sub("\d+", "xxNumxx", lineaLimpia)
 
-        words = cleanedLine.split()
-        for r, word in enumerate(words):
+        palabras = lineaLimpia.split()
+        for r, palabra in enumerate(palabras):
             if r == 0:
-                modifiedWords = (modifiedWords + ['<s> '])
-            word = word.translate(string.maketrans("",""), string.punctuation).lower()
-            modifiedWords = modifiedWords + [word + ' ']
-        modifiedWords = (modifiedWords + ['</s>'] + ['\n'])
+                #si es la primer palabra, le concatene el inicio de oración
+                palabrasModificadas = (palabrasModificadas + ['<s> '])
+            #quita puntuaciones
+            palabra = palabra.translate(string.maketrans("",""), string.punctuation).lower()
+            #agregar palabra a la lista de palabras modificadas
+            palabrasModificadas = palabrasModificadas + [palabra + ' ']
+        #al final de la oración agregar un cierre de oración
+        palabrasModificadas = (palabrasModificadas + ['</s>'] + ['\n'])
     except Exception as inst:
         print type(inst)     # the exception instance
         print inst.args      # arguments stored in .args
         print inst           # __str__ allows args to be printed directly
 
-def process_wrapper(chunkStart, chunkSize):
-    with open(INPUT_FILE) as f:
+def procesar_wrapper(chunkStart, chunkSize):
+    with open(archivoOrigen) as f:
         f.seek(chunkStart)
         lines = f.read(chunkSize).splitlines()
         for line in lines:
-            print "Processing %s" % (line)
-            process(line)
-        with open(OUTPUT_FILE, 'a') as f:
-            for line in modifiedWords:
+            print "procesando %s" % (line)
+            procesar(line)
+        with open(archivoDestino, 'a') as f:
+            for line in palabrasModificadas:
                 f.write(line)
 
 def chunkify(fname,size=1024*1024):
@@ -62,60 +68,29 @@ def chunkify(fname,size=1024*1024):
             if chunkEnd > fileEnd:
                 break
 
-def stringManipulation(file):
-    file = open(file)
-    counter = 0
-    modifiedWords = []
-    for line in file.readlines():
-        try:
-            counter += 1
-            if counter % 500 == 0:
-                print str(counter)
-
-            cleanedLine = line.strip()
-            
-            cleanedLine = url_regex.sub(process_match, cleanedLine)
-
-            words = cleanedLine.split()
-            for r, word in enumerate(words):
-                if r == 0:
-                    modifiedWords = (modifiedWords + ['<s> '])
-                word = word.translate(string.maketrans("",""), string.punctuation).lower()
-                modifiedWords = modifiedWords + [word + ' ']
-            modifiedWords = (modifiedWords + ['</s>'] + ['\n'])
-        except Exception as inst:
-            print type(inst)     # the exception instance
-            print inst.args      # arguments stored in .args
-            print inst           # __str__ allows args to be printed directly
-    with open(OUTPUT_FILE, 'w') as f:
-        for line in modifiedWords:
-            f.write(line)
-    return OUTPUT_FILE
-
 def readFile(file):
     file = open(file)
     for line in file.readlines():
         line = line.strip()
         print line
 
-def processFileMultipleJobs():
+def procesarFileMultipleJobs():
     print "================="
-    print "Process Started"
+    print "Procesamiento iniciado"
     #init objects
     cores = mp.cpu_count()
     pool = mp.Pool(cores)
     jobs = []
     #create jobs
-    for chunkStart,chunkSize in chunkify(INPUT_FILE):
-        jobs.append(pool.apply_async(process_wrapper,(chunkStart,chunkSize)))
+    for chunkStart,chunkSize in chunkify(archivoOrigen):
+        jobs.append(pool.apply_async(procesar_wrapper,(chunkStart,chunkSize)))
 
     #wait for all jobs to finish
     for job in jobs:
         job.get()
     print "================="
-    print "Process Completed"
+    print "Procesamiento completado"
     pool.close()
 
 if __name__ == '__main__':
-    processFileMultipleJobs()
-    #readFile(stringManipulation(INPUT_FILE))
+    procesarFileMultipleJobs()
