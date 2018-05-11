@@ -1,5 +1,5 @@
 import math
-import re
+import re,os
 
 # used for unseen words in training vocabularies
 UNK = None
@@ -10,6 +10,19 @@ SENTENCE_END = "</s>"
 def read_sentences_from_file(file_path):
     with open(file_path, "r") as f:
         return [re.split("\s+", line.rstrip('\n')) for line in f]
+
+def chunkify(fname,size=1024*1024):
+    fileEnd = os.path.getsize(fname)
+    with open(fname,'r') as f:
+        chunkEnd = f.tell()
+        while True:
+            chunkStart = chunkEnd
+            f.seek(size,1)
+            f.readline()
+            chunkEnd = f.tell()
+            yield chunkStart, chunkEnd - chunkStart
+            if chunkEnd > fileEnd:
+                break
 
 # calculate number of unigrams & bigrams
 def calculate_number_of_unigrams(sentences):
@@ -38,7 +51,7 @@ def print_unigram_probs(sorted_vocab_keys, model, fileName):
 
 def print_bigram_probs(sorted_vocab_keys, model, fileName):
     print "\t\t",
-    with open(fileName, 'w') as f:
+    with open(fileName, 'a') as f:
         for vocab_key in sorted_vocab_keys:
             if vocab_key != SENTENCE_START:
                 print(vocab_key if vocab_key != UNK else "UNK" + "\t\t")
