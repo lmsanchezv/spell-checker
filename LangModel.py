@@ -1,4 +1,4 @@
-import Bigrams
+from Bigrams import BigramLanguageModel
 from ModelsHelper import read_sentences_from_file, print_bigram_probs,calculate_unigram_perplexity,calculate_bigram_perplexity
 
 
@@ -9,8 +9,8 @@ if __name__ == '__main__':
     toy_dataset = read_sentences_from_file(INPUT_FILE)
     toy_dataset_test = read_sentences_from_file(INPUT_FILE)
     
-    toy_dataset_model_unsmoothed = Bigrams.BigramLanguageModel(toy_dataset)
-    toy_dataset_model_smoothed = Bigrams.BigramLanguageModel(toy_dataset, smoothing=True)
+    toy_dataset_model_unsmoothed = BigramLanguageModel(toy_dataset)
+    toy_dataset_model_smoothed = BigramLanguageModel(toy_dataset, smoothing=True)
 
     sorted_vocab_keys = toy_dataset_model_unsmoothed.sorted_vocabulary()
 
