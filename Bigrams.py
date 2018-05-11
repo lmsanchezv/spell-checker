@@ -1,44 +1,40 @@
 import math
-from Unigrams import UnigramLanguageModel
+from Unigrams import UnigramaModeloLenguaje
 
-# sentence start and end
-SENTENCE_START = "<s>"
-SENTENCE_END = "</s>"
+# oracion start and end
+inicioOracion = "<s>"
+finOracion = "</s>"
 
-class BigramLanguageModel(UnigramLanguageModel):
-    def __init__(self, sentences, smoothing=False):
-        UnigramLanguageModel.__init__(self, sentences, smoothing)
-        self.bigram_frequencies = dict()
-        self.unique_bigrams = set()
-        for sentence in sentences:
-            previous_word = None
-            for word in sentence:
-                if previous_word != None:
-                    self.bigram_frequencies[(previous_word, word)] = self.bigram_frequencies.get((previous_word, word),
-                                                                                                 0) + 1
-                    if previous_word != SENTENCE_START and word != SENTENCE_END:
-                        self.unique_bigrams.add((previous_word, word))
-                previous_word = word
-        # we subtracted two for the Unigram model as the unigram_frequencies dictionary
-        # contains values for SENTENCE_START and SENTENCE_END but these need to be included in Bigram
-        self.unique__bigram_words = len(self.unigram_frequencies)
+class BigramaModeloLenguaje(UnigramaModeloLenguaje):
+    def __init__(self, oraciones, smoothing=False):
+        UnigramaModeloLenguaje.__init__(self, oraciones, smoothing)
+        self.frecuenciasBigramas = dict()
+        self.bigramasUnicos = set()
+        for oracion in oraciones:
+            palabraAnterior = None
+            for palabra in oracion:
+                if palabraAnterior != None:
+                    self.frecuenciasBigramas[(palabraAnterior, palabra)] = self.frecuenciasBigramas.get((palabraAnterior, palabra), 0) + 1
+                    if palabraAnterior != inicioOracion and palabra != finOracion:
+                        self.bigramasUnicos.add((palabraAnterior, palabra))
+                palabraAnterior = palabra
+        self.palabrasUnicasBigrama = len(self.frecuenciasUnigramas)
 
-    def calculate_bigram_probabilty(self, previous_word, word):
-        bigram_word_probability_numerator = self.bigram_frequencies.get((previous_word, word), 0)
-        bigram_word_probability_denominator = self.unigram_frequencies.get(previous_word, 0)
+    def calcularProbabilidadBigrama(self, palabraAnterior, palabra):
+        numeradorProbabilidadPalabraBigrama = self.frecuenciasBigramas.get((palabraAnterior, palabra), 0)
+        denominadorProbabilidadPalabraBigrama = self.frecuenciasUnigramas.get(palabraAnterior, 0)
         if self.smoothing:
-            bigram_word_probability_numerator += 1
-            bigram_word_probability_denominator += self.unique__bigram_words
-        return 0.0 if bigram_word_probability_numerator == 0 or bigram_word_probability_denominator == 0 else float(
-            bigram_word_probability_numerator) / float(bigram_word_probability_denominator)
+            numeradorProbabilidadPalabraBigrama += 1
+            denominadorProbabilidadPalabraBigrama += self.palabrasUnicasBigrama
+        return 0.0 if numeradorProbabilidadPalabraBigrama == 0 or denominadorProbabilidadPalabraBigrama == 0 else float(
+            numeradorProbabilidadPalabraBigrama) / float(denominadorProbabilidadPalabraBigrama)
 
-    def calculate_bigram_sentence_probability(self, sentence, normalize_probability=True):
-        bigram_sentence_probability_log_sum = 0
-        previous_word = None
-        for word in sentence:
-            if previous_word != None:
-                bigram_word_probability = self.calculate_bigram_probabilty(previous_word, word)
-                bigram_sentence_probability_log_sum += math.log(bigram_word_probability, 2)
-            previous_word = word
-        return math.pow(2,
-                        bigram_sentence_probability_log_sum) if normalize_probability else bigram_sentence_probability_log_sum
+    def calcularProbabilidadOracionBigrama(self, oracion, normalizarProbabilidad=True):
+        probabilidadLogOracion = 0
+        palabraAnterior = None
+        for palabra in oracion:
+            if palabraAnterior != None:
+                probabilildadPalabra = self.calcularProbabilidadBigrama(palabraAnterior, palabra)
+                probabilidadLogOracion += math.log(probabilildadPalabra, 2)
+            palabraAnterior = palabra
+        return math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion

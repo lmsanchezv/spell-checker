@@ -3,7 +3,7 @@ import math
 # Usado para palabras que no existen en el vocabulario de entrenamiento
 UNK = None
 
-# inicio y fin de oración
+# inicio y fin de oracion
 inicioOracion = "<s>"
 finOracion = "</s>"
 
@@ -25,7 +25,7 @@ class UnigramaModeloLenguaje:
             denominadorProbabilidadPalabra = self.tamanoCorpus
             if self.smoothing:
                 numeradorProbabilidadPalabra += 1
-                # agregar uno más al total de palabras vistas para el UNK
+                # agregar uno mas al total de palabras vistas para el UNK
                 denominadorProbabilidadPalabra += self.palabrasUnicas + 1
             return float(numeradorProbabilidadPalabra) / float(denominadorProbabilidadPalabra)
 
@@ -33,8 +33,8 @@ class UnigramaModeloLenguaje:
         probabilidadLogOracion = 0
         for palabra in oracion:
             if palabra != inicioOracion and palabra != finOracion:
-                palabra_probability = self.calcularProbabilidadUnigrama(palabra)
-                probabilidadLogOracion += math.log(palabra_probability, 2)
+                probabilildadPalabra = self.calcularProbabilidadUnigrama(palabra)
+                probabilidadLogOracion += math.log(probabilildadPalabra, 2)
         return math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion                
 
     def obtenerVocabularioOrdenado(self):
