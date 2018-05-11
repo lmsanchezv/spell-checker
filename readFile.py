@@ -24,6 +24,7 @@ def process(line):
             print str(counter)
         cleanedLine = line.strip()   
         cleanedLine = url_regex.sub(process_match, cleanedLine)
+        cleanedLine = re.sub("\d+", "xxNumxx", cleanedLine)
 
         words = cleanedLine.split()
         for r, word in enumerate(words):
