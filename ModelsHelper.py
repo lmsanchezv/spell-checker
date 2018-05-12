@@ -42,29 +42,36 @@ def calcularNumeroBigramas(oraciones):
 # calcular probabilidad de unigramas
 def imprimirProbabilidadUnigramas(llavesVocabulario, modelo, fileName):
     with open(fileName, 'a') as f:
+        contador = 0
         for llave in llavesVocabulario:
+            contador += 1
+            if contador % 500 == 0:
+                print "{} unigramas analizados".format(contador)
             if llave != inicioOracion and llave != finOracion:
-                valorImprimir = "{}: {}".format(llave if llave != UNK else "UNK", modelo.calcularProbabilidadUnigrama(llave))
+                valorImprimir = "{},{}".format(llave if llave != UNK else "UNK", modelo.calcularProbabilidadUnigrama(llave))
                 f.write(valorImprimir + "\n")
-                print valorImprimir,
         print("")
 
 # calcular probabilidad de bigramas
 def imprimirProbabilidadBigramas(llavesVocabulario, modelo, fileName):
     print "\t\t",
     with open(fileName, 'a') as f:
-        for llave in llavesVocabulario:
-            if llave != inicioOracion:
-                print(llave if llave != UNK else "UNK" + "\t\t")
-        print("")
+        #for llave in llavesVocabulario:
+        #    if llave != inicioOracion:
+        #        print(llave if llave != UNK else "UNK" + "\t\t")
+        #print("")
+        contador = 0
         for llave in llavesVocabulario:
             if llave != finOracion:
                 print(llave if llave != UNK else "UNK" + "\t\t")
                 for segundaLlave in llavesVocabulario:
                     if segundaLlave != inicioOracion:
+                        contador += 1
+                        if contador % 1000 == 0:
+                            print "{} bigramas analizados".format(contador)
                         print(segundaLlave if segundaLlave != UNK else "UNK" + "\t\t")
                         print("{0:.5f}".format(modelo.calcularProbabilidadBigrama(llave, segundaLlave)) + "\t\t")
-                        valorImprimir = "{} {}: {}".format(llave if llave != UNK else "UNK", segundaLlave if segundaLlave != UNK else "UNK", modelo.calcularProbabilidadBigrama(llave, segundaLlave))
+                        valorImprimir = "{},{},{}".format(llave if llave != UNK else "UNK", segundaLlave if segundaLlave != UNK else "UNK", modelo.calcularProbabilidadBigrama(llave, segundaLlave))
                         f.write(valorImprimir + "\n")
                 print("")
         print("")

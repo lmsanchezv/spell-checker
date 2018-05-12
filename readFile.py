@@ -1,7 +1,8 @@
 #!/usr/bin/python
 import sys,string,re,os
 import multiprocessing as mp
-
+from ElapsedTimeFormatter import ElapsedFormatter
+import logging
 
 url_regex = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>\[\]]+|\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\))+(?:\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\)|[^\s`!(){};:'".,<>?\[\]]))""")
 archivoOrigen = "datos_original_mitad.txt"
@@ -16,11 +17,10 @@ def procesar_match(m):
 
 def procesar(line):
     global contador,palabrasModificadas
-    print contador
     try:
         contador += 1
         if contador % 500 == 0:
-            print str(contador)
+            print contador
         #quita caracteres en blanco al principio y final
         lineaLimpia = line.strip()   
         #quitar URLs
@@ -67,7 +67,7 @@ def chunkify(fname,size=1024*1024):
             if chunkEnd > fileEnd:
                 break
 
-def readFile(file):
+def cargarArchivo(file):
     file = open(file)
     for line in file.readlines():
         line = line.strip()
@@ -92,4 +92,16 @@ def procesarFileMultipleJobs():
     pool.close()
 
 if __name__ == '__main__':
+    #Lleva control de tiempos
+    handler = logging.StreamHandler()
+    handler.setFormatter(ElapsedFormatter())
+    logging.getLogger().addHandler(handler)
+
+    log = logging.getLogger('test')
+    log.error("Inicio de creacion de modelos")
+
+    if os.path.isfile(archivoDestino):
+        os.remove(archivoDestino)
     procesarFileMultipleJobs()
+
+    log.error("Fin de creacion de modelos")

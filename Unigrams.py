@@ -27,7 +27,7 @@ class UnigramaModeloLenguaje:
                 numeradorProbabilidadPalabra += 1
                 # agregar uno mas al total de palabras vistas para el UNK
                 denominadorProbabilidadPalabra += self.palabrasUnicas + 1
-            return float(numeradorProbabilidadPalabra) / float(denominadorProbabilidadPalabra)
+            return float(numeradorProbabilidadPalabra) / float(denominadorProbabilidadPalabra) * 100
 
     def calcularProbabilidadOracion(self, oracion, normalizarProbabilidad=True):
         probabilidadLogOracion = 0
@@ -35,7 +35,7 @@ class UnigramaModeloLenguaje:
             if palabra != inicioOracion and palabra != finOracion:
                 probabilildadPalabra = self.calcularProbabilidadUnigrama(palabra)
                 probabilidadLogOracion += math.log(probabilildadPalabra, 2)
-        return math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion                
+        return (math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion) * 100
 
     def obtenerVocabularioOrdenado(self):
         vocabularioCompleto = list(self.frecuenciasUnigramas.keys())

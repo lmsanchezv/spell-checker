@@ -2,7 +2,8 @@ import multiprocessing as mp,re
 from os import remove, path
 from Bigrams import BigramaModeloLenguaje
 from ModelsHelper import imprimirProbabilidadUnigramas, imprimirProbabilidadBigramas,calcularPerplejidadUnigramas,calcularPerplejidadBigramas,chunkify
-
+from ElapsedTimeFormatter import ElapsedFormatter
+import logging
 
 #input file to create the LangModel
 archivoOrigen = "output.txt"
@@ -78,4 +79,14 @@ def processMultipleThreads():
     pool.close()
 
 if __name__ == '__main__':
+    #Lleva control de tiempos
+    handler = logging.StreamHandler()
+    handler.setFormatter(ElapsedFormatter())
+    logging.getLogger().addHandler(handler)
+
+    log = logging.getLogger('test')
+    log.error("Inicio de creacion de modelos")
+
     processMultipleThreads()
+
+    log.error("Fin de creacion de modelos")

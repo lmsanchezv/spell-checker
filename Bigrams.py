@@ -27,7 +27,7 @@ class BigramaModeloLenguaje(UnigramaModeloLenguaje):
             numeradorProbabilidadPalabraBigrama += 1
             denominadorProbabilidadPalabraBigrama += self.palabrasUnicasBigrama
         return 0.0 if numeradorProbabilidadPalabraBigrama == 0 or denominadorProbabilidadPalabraBigrama == 0 else float(
-            numeradorProbabilidadPalabraBigrama) / float(denominadorProbabilidadPalabraBigrama)
+            numeradorProbabilidadPalabraBigrama) / float(denominadorProbabilidadPalabraBigrama) * 100
 
     def calcularProbabilidadOracionBigrama(self, oracion, normalizarProbabilidad=True):
         probabilidadLogOracion = 0
@@ -37,4 +37,4 @@ class BigramaModeloLenguaje(UnigramaModeloLenguaje):
                 probabilildadPalabra = self.calcularProbabilidadBigrama(palabraAnterior, palabra)
                 probabilidadLogOracion += math.log(probabilildadPalabra, 2)
             palabraAnterior = palabra
-        return math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion
+        return (math.pow(2, probabilidadLogOracion) if normalizarProbabilidad else probabilidadLogOracion) * 100
