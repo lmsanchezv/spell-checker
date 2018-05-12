@@ -63,17 +63,17 @@ def imprimirProbabilidadBigramas(llavesVocabulario, modelo, fileName):
         contador = 0
         for llave in llavesVocabulario:
             if llave != finOracion:
-                print(llave if llave != UNK else "UNK" + "\t\t")
+                #print(llave if llave != UNK else "UNK" + "\t\t")
                 for segundaLlave in llavesVocabulario:
                     if segundaLlave != inicioOracion:
                         contador += 1
-                        if contador % 1000 == 0:
+                        if contador % 1000000 == 0:
                             print "{} bigramas analizados".format(contador)
-                        print(segundaLlave if segundaLlave != UNK else "UNK" + "\t\t")
-                        print("{0:.5f}".format(modelo.calcularProbabilidadBigrama(llave, segundaLlave)) + "\t\t")
+                        #print(segundaLlave if segundaLlave != UNK else "UNK" + "\t\t")
+                        #print("{0:.5f}".format(modelo.calcularProbabilidadBigrama(llave, segundaLlave)) + "\t\t")
                         valorImprimir = "{},{},{}".format(llave if llave != UNK else "UNK", segundaLlave if segundaLlave != UNK else "UNK", modelo.calcularProbabilidadBigrama(llave, segundaLlave))
                         f.write(valorImprimir + "\n")
-                print("")
+                #print("")
         print("")
 
 # calculate perplexty
