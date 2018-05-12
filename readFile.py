@@ -13,7 +13,7 @@ palabrasModificadas = []
 
 def procesar_match(m):
     matches.append(m.group(0))
-    return '{{URL}}'
+    return 'xxURLxx'
 
 def procesar(line):
     global contador,palabrasModificadas
