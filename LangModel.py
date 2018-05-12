@@ -19,9 +19,6 @@ def procesarBigramasUnigramas(chuckSentnces):
 
     print("---------------- Dataset ---------------\n")
     print("=== UNIGRAMAS ===")
-    print("- Sin smoothing  -")
-    imprimirProbabilidadUnigramas(llavesVocabularioOrdenado, modeloSinSmoothing, 'unigramas.txt')
-    print("\n- Con smoothing  -")
     imprimirProbabilidadUnigramas(llavesVocabularioOrdenado, modeloConSmoothing, 'unigramas smoothed.txt')
 
     print("")

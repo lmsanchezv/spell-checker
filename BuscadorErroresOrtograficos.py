@@ -12,7 +12,7 @@ diccionario = []
 def cargarDiccionario(file):
     file = open(file)
     for line in file.readlines():
-        line = line.strip()
+        line = line.strip().lower()
         diccionario.append(line)
 
 def buscarFaltasOrtograficas(file):
