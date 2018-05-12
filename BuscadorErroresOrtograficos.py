@@ -29,7 +29,7 @@ def buscarFaltasOrtograficas(file):
         for palabra in palabrasOmitir:
             linea = linea.replace(palabra, "")
         linea = linea.strip()
-        for palabra in enumerate(linea.split()):
+        for palabra in linea.split():
             if palabra not in diccionario:
                 contador += 1
                 archivosAbiertos[indice].write(linea + '\n\r')
