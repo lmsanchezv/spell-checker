@@ -26,7 +26,6 @@ def buscarFaltasOrtograficas(file):
         lineasLeidas += 1
         if lineasLeidas % 500 == 0:
             print str(lineasLeidas)
-        linea = linea.decode('utf-8-sig')
         for palabra in palabrasOmitir:
             linea = linea.replace(palabra, "")
         linea = linea.strip()
