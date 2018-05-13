@@ -1,9 +1,11 @@
+# -*- coding: 850 -*-
 import os
 from ElapsedTimeFormatter import ElapsedFormatter
 import logging
+import codecs,  handleAccentuation as ha
 
 nombreDiccionario = "diccionarioCompletoEspanolCR.txt"
-nombreArchivoErrores = ["Errores1.txt","Errores2.txt","Errores3.txt"]
+nombreArchivoErrores = ["Errores1.html","Errores2.html","Errores3.html"]
 archivoOrigen = "output.txt"
 palabrasOmitir = ["<s>","</s>","xxurlxx","xxnumxx"]
 
@@ -12,6 +14,11 @@ diccionario = []
 def cargarDiccionario(file):
     file = open(file)
     for line in file.readlines():
+        for v in ha.options:
+                index = line.find(v)
+                if index != -1:
+                    newVocal = ha.options[v]()
+                    line = line.replace(v, newVocal)
         line = line.strip().lower()
         diccionario.append(line)
 
@@ -32,7 +39,9 @@ def buscarFaltasOrtograficas(file):
         for palabra in linea.split():
             if palabra not in diccionario:
                 contador += 1
-                archivosAbiertos[indice].write(linea + '\n\r')
+                nuevaPalabra = '<b><u><p style="color:red;display: inline;">%s</p></u></b>' % (palabra) 
+                linea = linea.replace(palabra, nuevaPalabra)
+                archivosAbiertos[indice].write(linea + '<br>')
                 indice = 0 if indice == 2 else indice + 1
                 break
     print "Se encontraron {} errores".format(contador)

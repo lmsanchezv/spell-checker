@@ -1,8 +1,9 @@
 #!/usr/bin/python
+# -*- coding: utf-8 -*-
 import sys,string,re,os
 import multiprocessing as mp
 from ElapsedTimeFormatter import ElapsedFormatter
-import logging
+import logging, handleAccentuation as ha
 
 url_regex = re.compile(r"""(?i)\b((?:[a-z][\w-]+:(?:/{1,3}|[a-z0-9%])|www\d{0,3}[.]|[a-z0-9.\-]+[.][a-z]{2,4}/)(?:[^\s()<>\[\]]+|\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\))+(?:\(([^\s()<>\[\]]+|(\([^\s()<>\[\]]+\)))*\)|[^\s`!(){};:'".,<>?\[\]]))""")
 archivoOrigen = "datos_original_mitad.txt"
@@ -34,6 +35,11 @@ def procesar(line):
                 #si es la primer palabra, le concatene el inicio de oracion
                 palabrasModificadas = (palabrasModificadas + ['<s> '])
             #quita puntuaciones
+            for v in ha.options:
+                index = palabra.find(v)
+                if index != -1:
+                    newVocal = ha.options[v]()
+                    palabra = palabra.replace(v, newVocal)
             palabra = palabra.translate(string.maketrans("",""), string.punctuation).lower()
             #agregar palabra a la lista de palabras modificadas
             palabrasModificadas = palabrasModificadas + [palabra + ' ']
