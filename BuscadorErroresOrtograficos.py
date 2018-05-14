@@ -39,7 +39,7 @@ def buscarFaltasOrtograficas(file):
         for palabra in linea.split():
             if palabra not in diccionario:
                 contador += 1
-                nuevaPalabra = '<b><u><p style="color:red;display: inline;">%s</p></u></b>' % (palabra) 
+                nuevaPalabra = '<b><u><font color="red">%s</font></u></b>' % (palabra) 
                 linea = linea.replace(palabra, nuevaPalabra)
                 archivosAbiertos[indice].write(linea + '<br>')
                 indice = 0 if indice == 2 else indice + 1
