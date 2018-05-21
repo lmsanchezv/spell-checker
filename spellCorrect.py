@@ -4,16 +4,12 @@ import handleAccentuation as ha
 import math as calc
 
 class SpellCorrect():
-    """A program to correct non-word spelling error in sentences using ngram MAP Language Models, Noisy Channel Model, Error Confusion Matrix and Damerau-Levenshtein Edit Distance.
-Usage:
-Input: 'she is a briliant acress'
-Response: she is a brilliant actress"""
+    """Corrector Ortografico usando Language Models, Noisy Channel Model, Error Confusion Matrix and Damerau-Levenshtein Edit Distance."""
     def __init__(self):
-        """Constructor method to load external nGram class, load words, confusion matrix and dictionary."""
+        """Método constructor para cargar palabras, matriz de confusión y diccionario."""
         self.nombreDiccionario = "diccionarioCompletoEspanolCR.txt"
         self.words = sorted(set(self.cargarDiccionario(self.nombreDiccionario)))[3246:]
         self.loadConfusionMatrix()
-        #self.dict = self.loadDict()
         return
     
     def cargarDiccionario(self, file):
@@ -28,15 +24,9 @@ Response: she is a brilliant actress"""
             line = line.strip().lower()
             diccionario.append(line)
         return diccionario
-
-    def loadDict(self):
-        """Method to load dictionary from external data file."""
-        print "Loading dictionary from data file"
-        f=open('dictionary.data', 'r')
-        return f.read().split("\n")
     
     def dlEditDistance(self, s1, s2):
-        """Method to calculate Damerau-Levenshtein Edit Distance for two strings."""
+        """Método para calcular la distancia de edición Damerau-Levenshtein para dos cadenas."""
         s1 = '#' + s1
         s2 = '#' + s2
         m = len(s1)
@@ -66,7 +56,7 @@ Response: she is a brilliant actress"""
         return D[m-1][n-1]
 
     def genCandidates(self, word):
-        """Method to generate set of candidates for a given word using Damerau-Levenshtein Edit Distance."""
+        """Método para generar un conjunto de palabras candidatas para una palabra dada usando Damerau-Levenshtein Edit Distance."""
         candidates = dict()
         for item in self.words:
             #print item, ", ",
@@ -76,7 +66,7 @@ Response: she is a brilliant actress"""
         return sorted(candidates, key=candidates.get, reverse=False)
 
     def editType(self, candidate, word):
-        "Method to calculate edit type for single edit errors."
+        "Método para calcular el tipo de edición para errores de edición única."
         edit=[False]*4
         correct=""
         error=""
@@ -167,7 +157,7 @@ Response: she is a brilliant actress"""
         
 
     def loadConfusionMatrix(self):
-        """Method to load Confusion Matrix from external data file."""
+        """Método para cargar la Matrix de Confusion desde un archivo de datos externo."""
         f=open('matrices/matrixInsert.data', 'r')
         data=f.read()
         f.close
@@ -186,7 +176,7 @@ Response: she is a brilliant actress"""
         self.delmatrix=ast.literal_eval(data)
 
     def channelModel(self, x,y, edit):
-        """Method to calculate channel model probability for errors."""
+        """Método para calcular la probabilidad del channel model para errores."""
         corpus = ' '.join(self.words)
         if edit == 'add':
             if x == '#':
@@ -201,9 +191,7 @@ Response: she is a brilliant actress"""
             return self.delmatrix[x+y]/corpus.count(x+y)
 help(SpellCorrect)
 sc = SpellCorrect()
-#print sc.editType('acres', 'acress')
-#print sc.genCandidates('acress')
-#exit
+
 while True:
     sentence = "sto s ola mundo".lower().split() #str(input('Input: ').lower()).split()
     correct=""    
@@ -217,7 +205,6 @@ while True:
         P=dict()
         for item in candidates:
             try:
-                #print item, ": ", sc.ng.unigram[item], ": ", sc.ng.unigramprobability(item)
                 edit = sc.editType(item, word)
                 #print item, ': ' , edit
                 if edit == None: continue
@@ -238,11 +225,9 @@ while True:
             if len(sentence)-1 != index:
                 print 'todo'
                 bigram = 'Null' 
-                #bigram = calc.pow(calc.e, sc.ng.sentenceprobability(sentence[index-1]+item+sentence[index+1], 'bi', 'antilog'))
             else:
                 print 'todo'
-                #bigram = calc.pow(calc.e, sc.ng.sentenceprobability(sentence[index-1]+item, 'bi', 'antilog'))
-            #print channel, ": ", unigram
+                bigram = 'Null' 
             P[item] = channel*bigram*calc.pow(10,9)
         P = sorted(P, key=P.get, reverse=True)
         if P == []:
