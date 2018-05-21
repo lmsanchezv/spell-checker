@@ -9,6 +9,7 @@ class SpellCorrect():
         """Método constructor para cargar palabras, matriz de confusión y diccionario."""
         self.nombreDiccionario = "diccionarioCompletoEspanolCR.txt"
         self.words = sorted(set(self.cargarDiccionario(self.nombreDiccionario)))[3246:]
+        self.bigrams = self.cargarBigramas('bigramas smoothed.txt')
         self.loadConfusionMatrix()
         return
     
@@ -24,6 +25,16 @@ class SpellCorrect():
             line = line.strip().lower()
             diccionario.append(line)
         return diccionario
+    
+    def cargarBigramas(self, file):
+        bigrams = {}
+        file = open(file)
+        for line in file.readlines():
+            line = line.strip().lower()
+            line = line.split()
+            key = '%s %s' % (line[0], line[1].replace(':', ''))
+            bigrams[key] = line[2]
+        return bigrams
     
     def dlEditDistance(self, s1, s2):
         """Método para calcular la distancia de edición Damerau-Levenshtein para dos cadenas."""
@@ -193,10 +204,10 @@ help(SpellCorrect)
 sc = SpellCorrect()
 
 while True:
-    sentence = "sto s ola mundo".lower().split() #str(input('Input: ').lower()).split()
+    sentence = str(raw_input('Entre oracion a corregir: ').lower()).split() #"sto s ola mundo".lower().split()
     correct=""    
     for index, word in enumerate(sentence):
-        candidates = ['esto', 'sito', 'soto', 'seto', 'to', 'so', 'sato']#sc.genCandidates(word)
+        candidates = sc.genCandidates(word)
         if word in candidates:
             correct=correct+word+' '
             continue
@@ -224,10 +235,16 @@ while True:
             channel = NP[item]
             if len(sentence)-1 != index:
                 print 'todo'
-                bigram = 'Null' 
+                key = sentence[index-1]+ ' ' + item#+sentence[index+1]
+                probability = sc.bigrams.get(key,0)
+                probability = calc.pow(calc.e, probability)
+                bigram = calc.pow(calc.e, probability)
             else:
                 print 'todo'
-                bigram = 'Null' 
+                key = sentence[index-1]+ ' ' + item
+                probability = sc.bigrams.get(key,0)
+                probability = calc.pow(calc.e, probability)
+                bigram = calc.pow(probability)
             P[item] = channel*bigram*calc.pow(10,9)
         P = sorted(P, key=P.get, reverse=True)
         if P == []:

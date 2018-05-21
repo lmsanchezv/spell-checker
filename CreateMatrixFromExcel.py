@@ -6,7 +6,7 @@ filesNames = ['matrixInsert.data','matrixDelete.data','matrixSubs.data','matrixE
 allData = []
 for mat in matrixs:
     data = {}
-    df = pd.read_excel('matrices.xlsx', sheet_name=mat)
+    df = pd.read_excel('matrices/matrices.xlsx', sheet_name=mat)
     matrix  = df.as_matrix()
     for row in matrix[1:]:
         for index in range(len(row)):
