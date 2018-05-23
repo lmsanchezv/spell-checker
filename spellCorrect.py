@@ -1,5 +1,5 @@
 from __future__ import division
-import ast
+import ast, json
 import handleAccentuation as ha
 import math as calc
 
@@ -19,7 +19,7 @@ class SpellCorrect():
     
     def cargarDiccionario(self, file):
         diccionario = []
-        file = open(file)
+        file = open(file, encoding="utf8")
         for line in file.readlines():
             for v in ha.options:
                     index = line.find(v)
@@ -32,7 +32,7 @@ class SpellCorrect():
     
     def cargarBigramas(self, file):
         bigrams = {}
-        file = open(file)
+        file = open(file, encoding="utf8")
         for line in file.readlines()[0:1000]:
             line = line.strip().lower()
             line = line.split(',')
@@ -176,36 +176,40 @@ class SpellCorrect():
     def loadConfusionMatrix(self):
         """Método para cargar la Matrix de Confusion desde un archivo de datos externo."""
         f=open('matrices/matrixInsert.data', 'r')
-        data=f.read()
+        data=json.load(f)
         f.close
         self.addmatrix=ast.literal_eval(data)
         f=open('matrices/matrixSubs.data', 'r')
-        data=f.read()
+        data=json.load(f)
         f.close
         self.submatrix=ast.literal_eval(data)
         f=open('matrices/matrixExchange.data', 'r')
-        data=f.read()
+        data=json.load(f)
         f.close
         self.revmatrix=ast.literal_eval(data)
         f=open('matrices/matrixDelete.data', 'r')
-        data=f.read()
+        data=json.load(f)
         f.close
         self.delmatrix=ast.literal_eval(data)
 
     def channelModel(self, x,y, edit):
         """Método para calcular la probabilidad del channel model para errores."""
-        corpus = ' '.join(self.words)
-        if edit == 'add':
-            if x == '#':
-                return self.addmatrix[x+y]/corpus.count(' '+y)
-            else:
-                return self.addmatrix[x+y]/corpus.count(x)
-        if edit == 'sub':
-            return self.submatrix[(x+y)[0:2]]/corpus.count(y)
-        if edit == 'rev':
-            return self.revmatrix[x+y]/corpus.count(x+y)
-        if edit == 'del':
-            return self.delmatrix[x+y]/corpus.count(x+y)
+        try:
+            corpus = ' '.join(self.words)
+            if edit == 'add':
+                if x == '#':
+                    return self.addmatrix[x+y]/corpus.count(' '+y)
+                else:
+                    return self.addmatrix[x+y]/corpus.count(x)
+            if edit == 'sub':
+                return self.submatrix[(x+y)[0:2]]/corpus.count(y)
+            if edit == 'rev':
+                return self.revmatrix[x+y]/corpus.count(x+y)
+            if edit == 'del':
+                return self.delmatrix[x+y]/corpus.count(x+y)
+        except Exception as inst:
+            print ('Combinacion' +inst.args[0] + 'no encontrada en la matriz de ' + edit)
+            return 0
 #help(SpellCorrect)
 sc = SpellCorrect()
 
@@ -221,22 +225,17 @@ while True:
         NP=dict()
         P=dict()
         for item in candidates:
-            try:
-                edit = sc.editType(item, word)
-                #print item, ': ' , edit
-                if edit == None: continue
-                if edit[0] == "Insertion":
-                    NP[item] = sc.channelModel(edit[3][0],edit[3][1], 'add')
-                if edit[0] == 'Deletion':
-                    NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'del')
-                if edit[0] == 'Reversal':
-                    NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'rev')
-                if edit[0] == 'Substitution':
-                    NP[item] = sc.channelModel(edit[3], edit[4], 'sub')
-            except Exception as inst:
-                print (type(inst))     # the exception instance
-                print (inst.args)     # arguments stored in .args
-                print (inst)           # __str__ allows args to be printed directly
+            edit = sc.editType(item, word)
+            #print item, ': ' , edit
+            if edit == None: continue
+            if edit[0] == "Insertion":
+                NP[item] = sc.channelModel(edit[3][0],edit[3][1], 'add')
+            if edit[0] == 'Deletion':
+                NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'del')
+            if edit[0] == 'Reversal':
+                NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'rev')
+            if edit[0] == 'Substitution':
+                NP[item] = sc.channelModel(edit[3], edit[4], 'sub')
         for item in NP:
             channel = NP[item]
             if len(sentence)-1 != index:
@@ -250,11 +249,11 @@ while True:
                 key = sentence[index-1]+ ' ' + item
                 probability = sc.bigrams.get(key,0)
                 probability = calc.pow(calc.e, probability)
-                bigram = calc.pow(probability)
+                bigram = calc.pow(calc.e, probability)
             P[item] = channel*bigram*calc.pow(10,9)
         P = sorted(P, key=P.get, reverse=True)
         if P == []:
             P.append('')
         correct = correct +P[0] +' '
         
-    print ('Response: '+correct)
+    print ('Oracion Corregida: '+correct)
