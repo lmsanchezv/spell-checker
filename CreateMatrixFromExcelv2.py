@@ -23,7 +23,7 @@ for row in matrix[1:]:
             allData[i][row[3]+','+row[4]] += 1
         else:
             allData[i][row[3]+','+row[4]] = 1
-        print allData[i][row[3]+','+row[4]]
+        print (allData[i][row[3]+','+row[4]])
 
 for fil in range(len(filesNames)):
     json_data = json.dumps(allData[fil], ensure_ascii=False)

@@ -8,9 +8,13 @@ class SpellCorrect():
     def __init__(self):
         """Método constructor para cargar palabras, matriz de confusión y diccionario."""
         self.nombreDiccionario = "diccionarioCompletoEspanolCR.txt"
-        self.words = sorted(set(self.cargarDiccionario(self.nombreDiccionario)))[3246:]
+        print ('Cargando Diccionario...')
+        self.words = sorted(set(self.cargarDiccionario(self.nombreDiccionario)))
+        print ('Cargando Biagramas...')
         self.bigrams = self.cargarBigramas('bigramas smoothed.txt')
+        print ('Cargando Matriz de Confusion...')
         self.loadConfusionMatrix()
+        print ('Carga Completada!!!')
         return
     
     def cargarDiccionario(self, file):
@@ -29,10 +33,10 @@ class SpellCorrect():
     def cargarBigramas(self, file):
         bigrams = {}
         file = open(file)
-        for line in file.readlines():
+        for line in file.readlines()[0:1000]:
             line = line.strip().lower()
-            line = line.split()
-            key = '%s %s' % (line[0], line[1].replace(':', ''))
+            line = line.split(',')
+            key = '%s %s' % (line[0], line[1])
             bigrams[key] = line[2]
         return bigrams
     
@@ -69,11 +73,13 @@ class SpellCorrect():
     def genCandidates(self, word):
         """Método para generar un conjunto de palabras candidatas para una palabra dada usando Damerau-Levenshtein Edit Distance."""
         candidates = dict()
+        print ('Generando palabras candidatas para: %s' % (word))
         for item in self.words:
             #print item, ", ",
             distance = self.dlEditDistance(word, item)
             if distance <= 1:
                 candidates[item]=distance
+        print ('Palabras Candidatas terminado')
         return sorted(candidates, key=candidates.get, reverse=False)
 
     def editType(self, candidate, word):
@@ -200,11 +206,11 @@ class SpellCorrect():
             return self.revmatrix[x+y]/corpus.count(x+y)
         if edit == 'del':
             return self.delmatrix[x+y]/corpus.count(x+y)
-help(SpellCorrect)
+#help(SpellCorrect)
 sc = SpellCorrect()
 
 while True:
-    sentence = str(raw_input('Entre oracion a corregir: ').lower()).split() #"sto s ola mundo".lower().split()
+    sentence = str(input('Entre oracion a corregir: ').lower()).split() #"sto s ola mundo".lower().split()
     correct=""    
     for index, word in enumerate(sentence):
         candidates = sc.genCandidates(word)
@@ -228,19 +234,19 @@ while True:
                 if edit[0] == 'Substitution':
                     NP[item] = sc.channelModel(edit[3], edit[4], 'sub')
             except Exception as inst:
-                print type(inst)     # the exception instance
-                print inst.args      # arguments stored in .args
-                print inst           # __str__ allows args to be printed directly
+                print (type(inst))     # the exception instance
+                print (inst.args)     # arguments stored in .args
+                print (inst)           # __str__ allows args to be printed directly
         for item in NP:
             channel = NP[item]
             if len(sentence)-1 != index:
-                print 'todo'
+                print ('todo')
                 key = sentence[index-1]+ ' ' + item#+sentence[index+1]
                 probability = sc.bigrams.get(key,0)
                 probability = calc.pow(calc.e, probability)
                 bigram = calc.pow(calc.e, probability)
             else:
-                print 'todo'
+                print ('todo')
                 key = sentence[index-1]+ ' ' + item
                 probability = sc.bigrams.get(key,0)
                 probability = calc.pow(calc.e, probability)
@@ -251,4 +257,4 @@ while True:
             P.append('')
         correct = correct +P[0] +' '
         
-    print 'Response: '+correct
+    print ('Response: '+correct)
