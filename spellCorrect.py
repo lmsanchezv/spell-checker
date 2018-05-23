@@ -1,74 +1,99 @@
 from __future__ import division
-import ast, json
+import ast, json, os
 import handleAccentuation as ha
 import math as calc
+from multiprocessing import Process
+import multiprocessing as mp
 
 class SpellCorrect():
     """Corrector Ortografico usando Language Models, Noisy Channel Model, Error Confusion Matrix and Damerau-Levenshtein Edit Distance."""
     def __init__(self):
         """Método constructor para cargar palabras, matriz de confusión y diccionario."""
-        self.nombreDiccionario = "diccionarioCompletoEspanolCR.txt"
         print ('Cargando Diccionario...')
-        self.words = sorted(set(self.cargarDiccionario(self.nombreDiccionario)))
+        self.words = []
+        self.cargaMultiProcesos('diccionarioCompletoEspanolCR.txt', self.cargarDiccionario)
+        self.words = sorted(set(self.words))
         print ('Cargando Biagramas...')
-        self.bigrams = self.cargarBigramas('bigramas smoothed.txt')
+        self.bigrams = {}
+        self.cargaMultiProcesos('bigramas smoothed.txt', self.cargarBigramas)
         print ('Cargando Matriz de Confusion...')
         self.loadConfusionMatrix()
         print ('Carga Completada!!!')
         return
     
-    def cargarDiccionario(self, file):
-        diccionario = []
-        file = open(file, encoding="utf8")
-        for line in file.readlines():
-            for v in ha.options:
-                    index = line.find(v)
-                    if index != -1:
-                        newVocal = ha.options[v]()
-                        line = line.replace(v, newVocal)
-            line = line.strip().lower()
-            diccionario.append(line)
-        return diccionario
+    def dividirArchivo(self, fname, size=1024*-1024):
+        fileEnd = os.path.getsize(fname)
+        print ('hola')
+        with open(fname,'r', encoding="utf8") as f:
+            chunkEnd = f.tell()
+            while True:
+                chunkStart = chunkEnd
+                f.seek(size,1)
+                f.readline()
+                chunkEnd = f.tell()
+                yield chunkStart, chunkEnd - chunkStart
+                if chunkEnd > fileEnd:
+                    break
+
+    def procesar_wrapper(self, chunkStart, chunkSize, archivoOrigen, procesar):
+        with open(archivoOrigen, encoding="utf8") as f:
+            f.seek(chunkStart)
+            lines = f.read(chunkSize).splitlines()
+            for line in lines:
+                procesar(line)
+    
+    def cargarDiccionario(self, line):
+        self.words.append(line)
     
     def cargarBigramas(self, file):
         bigrams = {}
         file = open(file, encoding="utf8")
         for line in file.readlines()[0:1000]:
             line = line.strip().lower()
-            line = line.split(',')
-            key = '%s %s' % (line[0], line[1])
+            line = line.split()
+            key = '%s %s' % (line[0], line[1].replace(':', ''))
             bigrams[key] = line[2]
-        return bigrams
-    
+
+    def cargaMultiProcesos(self, archivoOrigen, metodo):
+        cores = mp.cpu_count()
+        pool = mp.Pool(1)
+        jobs = []
+        #create jobs
+        for chunkStart,chunkSize in self.dividirArchivo(archivoOrigen):
+            jobs.append(pool.apply_async(self.procesar_wrapper,(chunkStart,chunkSize, archivoOrigen, metodo)))
+
+        #wait for all jobs to finish
+        for job in jobs:
+            job.get()
+        print ("=================")
+        print ("Procesamiento completado")
+        pool.close()
+
     def dlEditDistance(self, s1, s2):
         """Método para calcular la distancia de edición Damerau-Levenshtein para dos cadenas."""
-        s1 = '#' + s1
-        s2 = '#' + s2
-        m = len(s1)
-        n = len(s2)
-        D = [[0]*n for i in range(m)]
-        for i in range(m):
-             for j in range(n):
-                 D[i][0] = i
-                 D[0][j] = j
-        for i in range(m):
-            for j in range(n):
-                dis=[0]*4
-                if i == 0 or j == 0:
-                    continue
-                dis[0] = D[i-1][j] + 1
-                dis[1] = D[i][j-1] + 1
-                if s1[i] != s2[j]:
-                    dis[2] = D[i-1][j-1] +2
+        d = {}
+        lenstr1 = len(s1)
+        lenstr2 = len(s2)
+        for i in range(-1,lenstr1+1):
+            d[(i,-1)] = i+1
+        for j in range(-1,lenstr2+1):
+            d[(-1,j)] = j+1
+    
+        for i in range(lenstr1):
+            for j in range(lenstr2):
+                if s1[i] == s2[j]:
+                    cost = 0
                 else:
-                    dis[2] = D[i-1][j-1]
-                if s1[i] == s2[j-1] and s1[i-1] == s2[j]:
-                    dis[3] = D[i-1][j-1] - 1
-                if dis[3] != 0:
-                    D[i][j] = min(dis[0:4])
-                else:
-                    D[i][j] = min(dis[0:3])
-        return D[m-1][n-1]
+                    cost = 1
+                d[(i,j)] = min(
+                            d[(i-1,j)] + 1, # deletion
+                            d[(i,j-1)] + 1, # insertion
+                            d[(i-1,j-1)] + cost, # substitution
+                            )
+                if i and j and s1[i]==s2[j-1] and s1[i-1] == s2[j]:
+                    d[(i,j)] = min (d[(i,j)], d[i-2,j-2] + cost) # transposition
+ 
+        return d[lenstr1-1,lenstr2-1]
 
     def genCandidates(self, word):
         """Método para generar un conjunto de palabras candidatas para una palabra dada usando Damerau-Levenshtein Edit Distance."""
@@ -81,6 +106,13 @@ class SpellCorrect():
                 candidates[item]=distance
         print ('Palabras Candidatas terminado')
         return sorted(candidates, key=candidates.get, reverse=False)
+    
+    def split_work(self, word):
+        processes = [Process(target=self.genCandidates, args=(word)) for _ in range(1000)]
+        for p in processes:
+            p.start()
+        for p in processes:
+            p.join()
 
     def editType(self, candidate, word):
         "Método para calcular el tipo de edición para errores de edición única."
@@ -217,7 +249,7 @@ while True:
     sentence = str(input('Entre oracion a corregir: ').lower()).split() #"sto s ola mundo".lower().split()
     correct=""    
     for index, word in enumerate(sentence):
-        candidates = sc.genCandidates(word)
+        candidates = sc.split_work(word)
         if word in candidates:
             correct=correct+word+' '
             continue
