@@ -1,72 +1,72 @@
 from __future__ import division
-import ast, json, os
+import ast, json, os, collections
 import handleAccentuation as ha
 import math as calc
 from multiprocessing import Process
 import multiprocessing as mp
+from multiprocessing import Manager
+import pyxdameraulevenshtein as px
 
+
+d = collections.defaultdict(list)
 class SpellCorrect():
     """Corrector Ortografico usando Language Models, Noisy Channel Model, Error Confusion Matrix and Damerau-Levenshtein Edit Distance."""
     def __init__(self):
         """Método constructor para cargar palabras, matriz de confusión y diccionario."""
         print ('Cargando Diccionario...')
         self.words = []
-        self.cargaMultiProcesos('diccionarioCompletoEspanolCR.txt', self.cargarDiccionario)
+        self.bigrams = {}
+        self.cargarDiccionario('diccionarioCompletoEspanolCR.txt')
         self.words = sorted(set(self.words))
         print ('Cargando Biagramas...')
-        self.bigrams = {}
-        self.cargaMultiProcesos('bigramas smoothed.txt', self.cargarBigramas)
+        self.cargarBigramas('bigramas smoothed.txt')
         print ('Cargando Matriz de Confusion...')
         self.loadConfusionMatrix()
         print ('Carga Completada!!!')
         return
     
-    def dividirArchivo(self, fname, size=1024*-1024):
-        fileEnd = os.path.getsize(fname)
-        print ('hola')
-        with open(fname,'r', encoding="utf8") as f:
-            chunkEnd = f.tell()
-            while True:
-                chunkStart = chunkEnd
-                f.seek(size,1)
-                f.readline()
-                chunkEnd = f.tell()
-                yield chunkStart, chunkEnd - chunkStart
-                if chunkEnd > fileEnd:
-                    break
-
-    def procesar_wrapper(self, chunkStart, chunkSize, archivoOrigen, procesar):
-        with open(archivoOrigen, encoding="utf8") as f:
-            f.seek(chunkStart)
-            lines = f.read(chunkSize).splitlines()
-            for line in lines:
-                procesar(line)
-    
-    def cargarDiccionario(self, line):
-        self.words.append(line)
-    
-    def cargarBigramas(self, file):
-        bigrams = {}
+    def cargarDiccionario2(self, file):
+        diccionario = []
         file = open(file, encoding="utf8")
+        for line in file.readlines():
+            for v in ha.options:
+                    index = line.find(v)
+                    if index != -1:
+                        newVocal = ha.options[v]()
+                        line = line.replace(v, newVocal)
+            line = line.strip().lower()
+            diccionario.append(line)
+        return diccionario
+    
+    def cargarBigramas2(self, file):
+        bigrams = {}
+        file = open(file)
         for line in file.readlines()[0:1000]:
             line = line.strip().lower()
-            line = line.split()
-            key = '%s %s' % (line[0], line[1].replace(':', ''))
+            line = line.split(',')
+            key = '%s %s' % (line[0], line[1])
             bigrams[key] = line[2]
+        return bigrams
 
-    def cargaMultiProcesos(self, archivoOrigen, metodo):
+    def split(self, l):
+        return l.split()
+
+    def cargarBigramas(self, archivoOrigen):
         cores = mp.cpu_count()
-        pool = mp.Pool(1)
-        jobs = []
-        #create jobs
-        for chunkStart,chunkSize in self.dividirArchivo(archivoOrigen):
-            jobs.append(pool.apply_async(self.procesar_wrapper,(chunkStart,chunkSize, archivoOrigen, metodo)))
+        pool = mp.Pool(processes=cores)
+        f = open(archivoOrigen)
+        for keys in pool.map(self.split, f.readlines()[0:1000]):
+            line = keys[0].strip().lower()
+            line = line.split(',')
+            key = '%s %s' % (line[0], line[1])
+            self.bigrams[key] = line[2]
+        pool.close()
 
-        #wait for all jobs to finish
-        for job in jobs:
-            job.get()
-        print ("=================")
-        print ("Procesamiento completado")
+    def cargarDiccionario(self, archivoOrigen):
+        cores = mp.cpu_count()
+        pool = mp.Pool(processes=cores)
+        for keys in pool.map(self.split, open(archivoOrigen)):
+            self.words.append(keys[0])
         pool.close()
 
     def dlEditDistance(self, s1, s2):
@@ -95,24 +95,47 @@ class SpellCorrect():
  
         return d[lenstr1-1,lenstr2-1]
 
-    def genCandidates(self, word):
+    def genCandidates2(self, word):
         """Método para generar un conjunto de palabras candidatas para una palabra dada usando Damerau-Levenshtein Edit Distance."""
+        cores = mp.cpu_count()
+        pool = mp.Pool(processes=cores)
         candidates = dict()
-        print ('Generando palabras candidatas para: %s' % (word))
-        for item in self.words:
-            #print item, ", ",
-            distance = self.dlEditDistance(word, item)
+        for keys in pool.map(self.split, self.words):
+            distance = self.dlEditDistance(word, keys[0])
             if distance <= 1:
-                candidates[item]=distance
-        print ('Palabras Candidatas terminado')
+                candidates[keys[0]]=distance
+        pool.close()
         return sorted(candidates, key=candidates.get, reverse=False)
+
+    def genCandidates(self, word, words, return_dict):
+        """Método para generar un conjunto de palabras candidatas para una palabra dada usando Damerau-Levenshtein Edit Distance."""
+        #candidates = dict()
+        for item in words:
+            #print item, ", ",
+            distance = px.damerau_levenshtein_distance(word, item)#self.dlEditDistance(word, item)
+            if distance <= 1:
+                return_dict.append(item)
     
     def split_work(self, word):
-        processes = [Process(target=self.genCandidates, args=(word)) for _ in range(1000)]
-        for p in processes:
-            p.start()
-        for p in processes:
-            p.join()
+        manager = mp.Manager()
+        return_dict = manager.list()
+        #print ('Generando palabras candidatas para: %s' % (word))
+        lenght = int(len(self.words) / 4)
+        start = 0
+        end = 0
+        processes = []
+        if word not in self.words:
+            for i in range(4):
+                start = end
+                end = (i + 1) * lenght
+                p = Process(target=self.genCandidates, args=(word, self.words[start:end], return_dict))
+                p.start()
+                processes.append(p)
+            for p in processes:
+                p.join()
+        else:
+            return_dict.append(word)
+        return sorted(return_dict, key=str.lower, reverse=False)
 
     def editType(self, candidate, word):
         "Método para calcular el tipo de edición para errores de edición única."
@@ -240,13 +263,13 @@ class SpellCorrect():
             if edit == 'del':
                 return self.delmatrix[x+y]/corpus.count(x+y)
         except Exception as inst:
-            print ('Combinacion' +inst.args[0] + 'no encontrada en la matriz de ' + edit)
+            #print ('Combinacion ' +inst.args[0] + ' no encontrada en la matriz de ' + edit)
             return 0
 #help(SpellCorrect)
 sc = SpellCorrect()
 
 while True:
-    sentence = str(input('Entre oracion a corregir: ').lower()).split() #"sto s ola mundo".lower().split()
+    sentence = str(input('Entre oracion a corregir: ').lower()).split() 
     correct=""    
     for index, word in enumerate(sentence):
         candidates = sc.split_work(word)
@@ -271,14 +294,12 @@ while True:
         for item in NP:
             channel = NP[item]
             if len(sentence)-1 != index:
-                print ('todo')
                 key = sentence[index-1]+ ' ' + item#+sentence[index+1]
                 probability = sc.bigrams.get(key,0)
                 probability = calc.pow(calc.e, probability)
                 bigram = calc.pow(calc.e, probability)
             else:
-                print ('todo')
-                key = sentence[index-1]+ ' ' + item
+                key = '<s> ' + item
                 probability = sc.bigrams.get(key,0)
                 probability = calc.pow(calc.e, probability)
                 bigram = calc.pow(calc.e, probability)
