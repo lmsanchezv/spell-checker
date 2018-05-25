@@ -6,6 +6,7 @@ from multiprocessing import Process
 import multiprocessing as mp
 from multiprocessing import Manager
 import pyxdameraulevenshtein as px
+from BigramasUnigramas import BigramasUnigramas
 
 
 d = collections.defaultdict(list)
@@ -18,8 +19,8 @@ class SpellCorrect():
         self.bigrams = {}
         self.cargarDiccionario('diccionarioCompletoEspanolCR.txt')
         self.words = sorted(set(self.words))
-        print ('Cargando Biagramas...')
-        self.cargarBigramas('bigramas smoothed.txt')
+        self.bigrams = BigramasUnigramas(True, True)
+       # self.cargarBigramas('bigramas smoothed.txt')
         print ('Cargando Matriz de Confusion...')
         self.loadConfusionMatrix()
         print ('Carga Completada!!!')
@@ -54,7 +55,7 @@ class SpellCorrect():
     def cargarBigramas(self, archivoOrigen):
         cores = mp.cpu_count()
         pool = mp.Pool(processes=cores)
-        f = open(archivoOrigen)
+        f = open(archivoOrigen, 'r', encoding="utf8")
         for keys in pool.map(self.split, f.readlines()[0:1000]):
             line = keys[0].strip().lower()
             line = line.split(',')
@@ -65,7 +66,7 @@ class SpellCorrect():
     def cargarDiccionario(self, archivoOrigen):
         cores = mp.cpu_count()
         pool = mp.Pool(processes=cores)
-        for keys in pool.map(self.split, open(archivoOrigen)):
+        for keys in pool.map(self.split, open(archivoOrigen, encoding="utf8")):
             self.words.append(keys[0])
         pool.close()
 
@@ -250,7 +251,7 @@ class SpellCorrect():
     def channelModel(self, x,y, edit):
         """Método para calcular la probabilidad del channel model para errores."""
         try:
-            corpus = ' '.join(self.words)
+            corpus = ' '.join(self.bigrams.words)
             if edit == 'add':
                 if x == '#':
                     return self.addmatrix[x+y]/corpus.count(' '+y)
@@ -266,47 +267,57 @@ class SpellCorrect():
             #print ('Combinacion ' +inst.args[0] + ' no encontrada en la matriz de ' + edit)
             return 0
 #help(SpellCorrect)
-sc = SpellCorrect()
 
-while True:
-    sentence = str(input('Entre oracion a corregir: ').lower()).split() 
-    correct=""    
-    for index, word in enumerate(sentence):
-        candidates = sc.split_work(word)
-        if word in candidates:
-            correct=correct+word+' '
-            continue
-        #print word, ': ', candidates
-        NP=dict()
-        P=dict()
-        for item in candidates:
-            edit = sc.editType(item, word)
-            #print item, ': ' , edit
-            if edit == None: continue
-            if edit[0] == "Insertion":
-                NP[item] = sc.channelModel(edit[3][0],edit[3][1], 'add')
-            if edit[0] == 'Deletion':
-                NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'del')
-            if edit[0] == 'Reversal':
-                NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'rev')
-            if edit[0] == 'Substitution':
-                NP[item] = sc.channelModel(edit[3], edit[4], 'sub')
-        for item in NP:
-            channel = NP[item]
-            if len(sentence)-1 != index:
-                key = sentence[index-1]+ ' ' + item#+sentence[index+1]
-                probability = sc.bigrams.get(key,0)
-                probability = calc.pow(calc.e, probability)
-                bigram = calc.pow(calc.e, probability)
-            else:
-                key = '<s> ' + item
-                probability = sc.bigrams.get(key,0)
-                probability = calc.pow(calc.e, probability)
-                bigram = calc.pow(calc.e, probability)
-            P[item] = channel*bigram*calc.pow(10,9)
-        P = sorted(P, key=P.get, reverse=True)
-        if P == []:
-            P.append('')
-        correct = correct +P[0] +' '
-        
-    print ('Oracion Corregida: '+correct)
+def crearCorrector():
+    sc = SpellCorrect()
+
+    while True:
+        sentence = str(input('Entre oracion a corregir: ').lower()).split() 
+        if len(sentence) == 1 and sentence[0] == 'salir':
+            print ('Proceseso terminado')
+            break
+        correct=""    
+        for index, word in enumerate(sentence):
+            candidates = sc.split_work(word)
+            if word in candidates:
+                correct=correct+word+' '
+                continue
+            #print word, ': ', candidates
+            NP=dict()
+            P=dict()
+            for item in candidates:
+                edit = sc.editType(item, word)
+                #print item, ': ' , edit
+                if edit == None: continue
+                if edit[0] == "Insertion":
+                    NP[item] = sc.channelModel(edit[3][0],edit[3][1], 'add')
+                if edit[0] == 'Deletion':
+                    NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'del')
+                if edit[0] == 'Reversal':
+                    NP[item] = sc.channelModel(edit[4][0], edit[4][1], 'rev')
+                if edit[0] == 'Substitution':
+                    NP[item] = sc.channelModel(edit[3], edit[4], 'sub')
+            for item in NP:
+                channel = NP[item]
+                if len(sentence)-1 != index:
+                    key = sentence[index-1]+ ' ' + item + ' ' +sentence[index+1]
+                    #probability = sc.bigrams.get(key,0)
+                    #probability = calc.pow(calc.e, probability)
+                    #bigram = calc.pow(calc.e, probability)
+                    bigram = calc.pow(calc.e, sc.bigrams.probabilidadOracion(key, 'bi', 'antilog'))
+                else:
+                    #key = '<s> ' + item
+                    #probability = sc.bigrams.get(key,0)
+                    #probability = calc.pow(calc.e, probability)
+                    #bigram = calc.pow(calc.e, probability)
+                    bigram = calc.pow(calc.e, sc.bigrams.probabilidadOracion(sentence[index-1]+ ' ' + item, 'bi', 'antilog'))
+                P[item] = channel*bigram*calc.pow(10,9)
+            P = sorted(P, key=P.get, reverse=True)
+            if P == []:
+                P.append('')
+            correct = correct +P[0] +' '
+            
+        print ('Oracion Corregida: '+correct)
+
+if __name__ == '__main__':  
+    crearCorrector()
