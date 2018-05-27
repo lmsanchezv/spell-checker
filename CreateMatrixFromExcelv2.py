@@ -1,6 +1,16 @@
 import pandas as pd
 import json, re
 from collections import defaultdict
+from ElapsedTimeFormatter import ElapsedFormatter
+import logging, handleAccentuation as ha
+
+#Lleva control de tiempos
+handler = logging.StreamHandler()
+handler.setFormatter(ElapsedFormatter())
+logging.getLogger().addHandler(handler)
+
+log = logging.getLogger('test')
+log.error("Inicio de creacion de matrices")
 
 filesNames = ['matrixInsert.data','matrixDelete.data','matrixSubs.data','matrixExchange.data']
 allData = [defaultdict(list),defaultdict(list),defaultdict(list),defaultdict(list)]
@@ -23,9 +33,11 @@ for row in matrix[1:]:
             allData[i][row[3]+row[4]] += 1
         else:
             allData[i][row[3]+row[4]] = 1
-        print (allData[i][row[3]+row[4]])
 
 for fil in range(len(filesNames)):
     json_data = json.dumps(allData[fil], ensure_ascii=False)
     with open('matrices/%s' % filesNames[fil], 'w') as outfile:
         json.dump(json_data, outfile)
+        
+
+log.error("Fin de creacion de matrices")
